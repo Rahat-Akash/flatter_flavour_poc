@@ -1,0 +1,31 @@
+// Gradle script to copy the appropriate Firebase configuration file based on flavor
+// This should be applied in build.gradle.kts
+
+def flavorName = project.findProperty('flavor') ?: 'development'
+def firebaseConfigDir = file("${project.rootDir}/../assets/firebase")
+def sourceFile = file("${firebaseConfigDir}/${flavorName}/google-services.json")
+def destFile = file("${project.projectDir}/google-services.json")
+
+task copyFirebaseConfig(type: Copy) {
+    description = 'Copies the Firebase configuration file based on the current flavor'
+    from sourceFile
+    into project.projectDir
+    rename { fileName -> 'google-services.json' }
+    
+    doLast {
+        if (!sourceFile.exists()) {
+            println "Warning: Firebase config file not found at ${sourceFile.path}"
+            println "Please ensure you have placed the google-services.json file in assets/firebase/${flavorName}/"
+        } else {
+            println "Copied Firebase config from ${sourceFile.path} to ${destFile.path}"
+        }
+    }
+}
+
+// Make sure this task runs before the Google Services plugin processes the file
+afterEvaluate {
+    tasks.matching { it.name.contains('process') && it.name.contains('GoogleServices') }.all {
+        it.dependsOn copyFirebaseConfig
+    }
+}
+
